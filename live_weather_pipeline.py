@@ -42,7 +42,7 @@ OPEN_METEO_URL = (
 
 TIMEZONE = "Asia/Kolkata"
 
-BATCH_SIZE = 25
+BATCH_SIZE = 100
 # We need 168 hours for the longest rolling feature.
 # 1200 hours gives enough history for
 # Hours_Since_Last_Rain during long dry periods.
