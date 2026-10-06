@@ -48,7 +48,7 @@ BATCH_SIZE = 25
 # Hours_Since_Last_Rain during long dry periods.
 BATCH_DELAY_SECONDS = 2.0
 
-PAST_HOURS = 1200
+PAST_HOURS = 168
 
 # Current-risk model does NOT use future forecast values.
 # One forecast hour is requested only to ensure the
