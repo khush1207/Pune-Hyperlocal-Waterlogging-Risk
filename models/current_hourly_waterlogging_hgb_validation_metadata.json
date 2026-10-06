@@ -1,0 +1,116 @@
+{
+  "model_type": "HistGradientBoostingRegressor",
+  "prediction_target": "AHP_Waterlogging_Score",
+  "risk_type": "CURRENT_ROAD_WATERLOGGING_RISK",
+  "model_features": [
+    "Latitude",
+    "Longitude",
+    "Rain_mm",
+    "Temperature_C",
+    "Relative_Humidity_pct",
+    "Wind_Speed_kmh",
+    "Shortwave_Radiation_W_m2",
+    "Rain_Last_1h",
+    "Rain_Last_3h",
+    "Rain_Last_6h",
+    "Rain_Last_12h",
+    "Rain_Last_24h",
+    "Rain_Last_72h",
+    "Rain_Last_168h",
+    "Max_Hourly_Rain_Last_6h",
+    "Max_Hourly_Rain_Last_24h",
+    "Hours_Since_Last_Rain",
+    "Temperature_3h_Avg",
+    "Temperature_6h_Avg",
+    "Humidity_6h_Avg",
+    "Wind_6h_Avg",
+    "Solar_6h_Sum",
+    "Hour",
+    "Day_of_Week",
+    "Month",
+    "Elevation_m",
+    "Slope_deg",
+    "Flow_Accumulation_km2",
+    "Builtup_Percent",
+    "Vegetation_Percent",
+    "Road_Density_km_per_km2",
+    "Distance_to_River_m",
+    "Distance_to_Drain_m",
+    "Drainage_Density_km_per_km2"
+  ],
+  "feature_count": 34,
+  "training_years": [
+    2021,
+    2022,
+    2023
+  ],
+  "validation_year": 2024,
+  "sample_per_month": 50000,
+  "risk_weights": {
+    "LOW": 1.0,
+    "MODERATE": 1.5,
+    "HIGH": 5.0,
+    "EXTREME": 15.0
+  },
+  "risk_thresholds": {
+    "LOW": "<30",
+    "MODERATE": "30-<60",
+    "HIGH": "60-<90",
+    "EXTREME": ">=90"
+  },
+  "hyperparameters": {
+    "learning_rate": 0.08,
+    "max_iter": 150,
+    "max_leaf_nodes": 31,
+    "min_samples_leaf": 100,
+    "l2_regularization": 1.0,
+    "max_bins": 127,
+    "early_stopping": false,
+    "random_state": 42
+  },
+  "validation_results": {
+    "validation_year": 2024,
+    "rows": 4233888,
+    "MAE": 0.24543650081353646,
+    "RMSE": 0.5351787894247346,
+    "R2": 0.9989140663603167,
+    "Accuracy": 0.994674870946043,
+    "Balanced_Accuracy": 0.9436356398786782,
+    "Macro_F1": 0.9412946486973481,
+    "Tail_F1": 0.973592383203765,
+    "LOW_Recall": 0.9974207504348095,
+    "MODERATE_Recall": 0.9661716879193081,
+    "HIGH_Recall": 0.9800148693620335,
+    "EXTREME_Recall": 0.8309352517985612,
+    "LOW_F1": 0.9978903318585578,
+    "MODERATE_F1": 0.963532269656934,
+    "HIGH_F1": 0.971698361576467,
+    "EXTREME_F1": 0.8320576316974336,
+    "confusion_matrix": [
+      [
+        3806770,
+        9844,
+        0,
+        0
+      ],
+      [
+        6252,
+        292922,
+        4004,
+        0
+      ],
+      [
+        0,
+        2073,
+        110726,
+        185
+      ],
+      [
+        0,
+        0,
+        188,
+        924
+      ]
+    ]
+  }
+}

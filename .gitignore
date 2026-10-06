@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.venv/
+
+# PyCharm
+.idea/
+*.iml
+
+# Environment / secrets
+.env
+.env.*
+
+# Python caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs
+*.log
+logs/
+
+# Large historical datasets
+data/raw/
+data/hourly_features/
+data/hourly_targets/
+data/current_hourly_targets/
+data/current_ml_ready/
+data/historical_replay/
+
+# Parquet files
+*.parquet
+
+# Generated live files
+data/live/*.csv
+data/live/*.parquet
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# npm logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
