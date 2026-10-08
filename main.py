@@ -60,7 +60,7 @@ app.add_middleware(
 TIMEZONE = "Asia/Kolkata"
 
 CACHE_SECONDS = 15 * 60
-BATCH_SIZE = 25
+BATCH_SIZE = 100
 
 # Route risk matching radius.
 # A modeled waterlogging point within this distance of the route
@@ -288,70 +288,31 @@ except ImportError as exc:
 # ============================================================
 # LOAD CACHED PREDICTIONS FROM DISK
 # ============================================================
-
 def load_cached_predictions_from_disk():
+    """
+    Load the last successfully generated predictions from disk.
 
-    global _cached_predictions
-    global _cached_at
-
+    Fresh or stale CSV cache can be used as a fallback when
+    the live weather API is temporarily unavailable.
+    """
     if not LIVE_PREDICTIONS_PATH.exists():
         return None
 
     try:
-        # ----------------------------------------------------
-        # Check actual age of saved live predictions
-        # ----------------------------------------------------
-
-        file_modified_at = (
-            LIVE_PREDICTIONS_PATH.stat().st_mtime
-        )
-
-        file_age = (
-            time.time()
-            - file_modified_at
-        )
-
-        # Do not use stale predictions
-        if file_age >= CACHE_SECONDS:
-            return None
-
         df = pd.read_csv(
             LIVE_PREDICTIONS_PATH
         )
 
-        required = [
-            "Location_ID",
-            "Ward",
-            "Point",
-            "Latitude",
-            "Longitude",
-            "Risk Score",
-            "risk_score",
-            "risk_level",
-            "Rainfall Now",
-        ]
-
-        missing = [
-            col
-            for col in required
-            if col not in df.columns
-        ]
-
-        if missing:
+        if df.empty:
             return None
-
-        with _cache_lock:
-
-            _cached_predictions = df
-
-            # Preserve the real age of the cached file
-            _cached_at = file_modified_at
 
         return df
 
-    except Exception:
+    except Exception as exc:
+        print(
+            f"Could not load cached predictions: {exc}"
+        )
         return None
-
 # ============================================================
 # FETCH LIVE FEATURES
 # ============================================================
@@ -590,22 +551,51 @@ def refresh_predictions(
 # ============================================================
 # GET CURRENT PREDICTIONS
 # ============================================================
-
 def get_current_predictions():
 
     global _cached_predictions
+    global _cached_at
 
-    if cache_is_valid():
+    # --------------------------------------------------------
+    # 1. Use fresh in-memory cache
+    # --------------------------------------------------------
 
-        return _cached_predictions
+    with _cache_lock:
 
-    disk_data = (
+        if cache_is_valid():
+
+            return _cached_predictions.copy()
+
+    # --------------------------------------------------------
+    # 2. Use disk cache, including stale cache
+    # --------------------------------------------------------
+
+    disk_cache = (
         load_cached_predictions_from_disk()
     )
 
-    if disk_data is not None:
+    if (
+        disk_cache is not None
+        and not disk_cache.empty
+    ):
 
-        return disk_data
+        with _cache_lock:
+
+            _cached_predictions = (
+                disk_cache.copy()
+            )
+
+            # Important:
+            # Do NOT treat stale disk data as a fresh
+            # 15-minute cache. Keep timestamp only for
+            # in-memory reuse during this server session.
+            _cached_at = time.time()
+
+        return disk_cache.copy()
+
+    # --------------------------------------------------------
+    # 3. No cache available → fetch live data
+    # --------------------------------------------------------
 
     return refresh_predictions(
         force=False
@@ -1441,7 +1431,7 @@ def refresh_risk_get():
 
     predictions = (
         refresh_predictions(
-            force=True
+            force=False
         )
     )
 
