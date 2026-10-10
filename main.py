@@ -60,7 +60,7 @@ app.add_middleware(
 TIMEZONE = "Asia/Kolkata"
 
 CACHE_SECONDS = 15 * 60
-BATCH_SIZE = 100
+BATCH_SIZE = 25
 
 # Route risk matching radius.
 # A modeled waterlogging point within this distance of the route
@@ -288,31 +288,70 @@ except ImportError as exc:
 # ============================================================
 # LOAD CACHED PREDICTIONS FROM DISK
 # ============================================================
-def load_cached_predictions_from_disk():
-    """
-    Load the last successfully generated predictions from disk.
 
-    Fresh or stale CSV cache can be used as a fallback when
-    the live weather API is temporarily unavailable.
-    """
+def load_cached_predictions_from_disk():
+
+    global _cached_predictions
+    global _cached_at
+
     if not LIVE_PREDICTIONS_PATH.exists():
         return None
 
     try:
+        # ----------------------------------------------------
+        # Check actual age of saved live predictions
+        # ----------------------------------------------------
+
+        file_modified_at = (
+            LIVE_PREDICTIONS_PATH.stat().st_mtime
+        )
+
+        file_age = (
+            time.time()
+            - file_modified_at
+        )
+
+        # Do not use stale predictions
+        if file_age >= CACHE_SECONDS:
+            return None
+
         df = pd.read_csv(
             LIVE_PREDICTIONS_PATH
         )
 
-        if df.empty:
+        required = [
+            "Location_ID",
+            "Ward",
+            "Point",
+            "Latitude",
+            "Longitude",
+            "Risk Score",
+            "risk_score",
+            "risk_level",
+            "Rainfall Now",
+        ]
+
+        missing = [
+            col
+            for col in required
+            if col not in df.columns
+        ]
+
+        if missing:
             return None
+
+        with _cache_lock:
+
+            _cached_predictions = df
+
+            # Preserve the real age of the cached file
+            _cached_at = file_modified_at
 
         return df
 
-    except Exception as exc:
-        print(
-            f"Could not load cached predictions: {exc}"
-        )
+    except Exception:
         return None
+
 # ============================================================
 # FETCH LIVE FEATURES
 # ============================================================
@@ -465,6 +504,7 @@ def generate_predictions(features):
 # ============================================================
 # REFRESH PREDICTIONS
 # ============================================================
+
 def refresh_predictions(
     force=False
 ):
@@ -477,135 +517,100 @@ def refresh_predictions(
         # ----------------------------------------------------
         # Reuse valid in-memory cache
         # ----------------------------------------------------
+
         if (
             not force
             and cache_is_valid()
         ):
-            return _cached_predictions.copy()
+
+            return _cached_predictions
 
         # ----------------------------------------------------
-        # Try to fetch fresh live data
+        # Reuse disk cache
         # ----------------------------------------------------
-        print(
-            "Fetching fresh live weather data..."
-        )
 
-        try:
+        if not force:
 
-            features = fetch_live_features()
-
-            predictions = generate_predictions(
-                features
-            )
-
-            LIVE_DIR.mkdir(
-                parents=True,
-                exist_ok=True,
-            )
-
-            # ------------------------------------------------
-            # Save live features
-            # ------------------------------------------------
-            features.to_parquet(
-                LIVE_FEATURES_PATH,
-                index=False,
-            )
-
-            # ------------------------------------------------
-            # Save predictions
-            # ------------------------------------------------
-            predictions.to_csv(
-                LIVE_PREDICTIONS_PATH,
-                index=False,
-            )
-
-            # ------------------------------------------------
-            # Update memory cache
-            # ------------------------------------------------
-            with _cache_lock:
-
-                _cached_predictions = (
-                    predictions.copy()
-                )
-
-                _cached_at = time.time()
-
-            print(
-                "Live predictions refreshed."
-            )
-
-            return predictions.copy()
-
-        except Exception as exc:
-
-            print(
-                f"Live weather refresh failed: {exc}"
-            )
-
-            # -----------------------------------------------
-            # Fallback to previous predictions
-            # -----------------------------------------------
             disk_data = (
                 load_cached_predictions_from_disk()
             )
 
-            if (
-                disk_data is not None
-                and not disk_data.empty
-            ):
+            if disk_data is not None:
+                return disk_data
 
-                print(
-                    "Using previous prediction cache."
-                )
+        # ----------------------------------------------------
+        # Fetch fresh live data
+        # ----------------------------------------------------
 
-                with _cache_lock:
+        print(
+            "Fetching fresh live weather data..."
+        )
 
-                    _cached_predictions = (
-                        disk_data.copy()
-                    )
+        features = fetch_live_features()
 
-                    # Treat fallback as temporarily cached
-                    # so repeated frontend requests do not
-                    # repeatedly hit Open-Meteo.
-                    _cached_at = time.time()
+        predictions = generate_predictions(
+            features
+        )
 
-                return disk_data.copy()
+        LIVE_DIR.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
 
-            # ------------------------------------------------
-            # No fallback available
-            # ------------------------------------------------
-            raise RuntimeError(
-                "Live weather unavailable and "
-                "no previous prediction cache exists."
-            )
+        # ----------------------------------------------------
+        # Save features
+        # ----------------------------------------------------
+
+        features.to_parquet(
+            LIVE_FEATURES_PATH,
+            index=False,
+        )
+
+        # ----------------------------------------------------
+        # Save predictions
+        # ----------------------------------------------------
+
+        predictions.to_csv(
+            LIVE_PREDICTIONS_PATH,
+            index=False,
+        )
+
+        with _cache_lock:
+
+            _cached_predictions = predictions
+            _cached_at = time.time()
+
+        print(
+            "Live predictions refreshed."
+        )
+
+        return predictions
+
 
 # ============================================================
 # GET CURRENT PREDICTIONS
 # ============================================================
+
 def get_current_predictions():
 
     global _cached_predictions
-    global _cached_at
 
-    # --------------------------------------------------------
-    # Use fresh in-memory cache
-    # --------------------------------------------------------
-    with _cache_lock:
+    if cache_is_valid():
 
-        if cache_is_valid():
+        return _cached_predictions
 
-            return _cached_predictions.copy()
+    disk_data = (
+        load_cached_predictions_from_disk()
+    )
 
-    # --------------------------------------------------------
-    # No valid memory cache:
-    # Try live refresh.
-    #
-    # refresh_predictions() itself handles fallback to the
-    # previous CSV cache if Open-Meteo is unavailable.
-    # --------------------------------------------------------
+    if disk_data is not None:
+
+        return disk_data
+
     return refresh_predictions(
         force=False
     )
+
 
 # ============================================================
 # ROUTE / GEOGRAPHIC HELPERS
@@ -1436,7 +1441,7 @@ def refresh_risk_get():
 
     predictions = (
         refresh_predictions(
-            force=False
+            force=True
         )
     )
 
