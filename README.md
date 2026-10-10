@@ -1,4 +1,4 @@
-<img width="1898" height="826" alt="role-and-location-search" src="https://github.com/user-attachments/assets/6f0ff244-1560-490d-9873-97b9bf569e40" /># 🌧️ Hyperlocal Flood Risk Prediction & Community Alert System — Pune
+# 🌧️ Hyperlocal Flood Risk Prediction & Community Alert System — Pune
 
 An AI-based system that estimates the **current road-waterlogging risk every hour at 482 locations across 58 wards of Pune**, and shows it on an interactive, multilingual map dashboard with guidance for residents, NGOs/volunteers, farmers and local authorities.
 
@@ -13,24 +13,20 @@ Counts of locations at Low / Moderate / High / Extreme risk. Click a card to fil
 
 <img width="1898" height="827" alt="dashboard-overview" src="https://github.com/user-attachments/assets/8e54b75a-fbe5-49c4-b0a6-10cc2b5f8f00" />
 
-
 ### Role-based guidance and location search
 Choose your role (Resident, NGO/Volunteer, Farmer, Local Authority) and pick a Pune/PMC area to check before travelling.
 
 <img width="1898" height="826" alt="role-and-location-search" src="https://github.com/user-attachments/assets/d6d7b62c-8ffe-46c4-98d3-7df8ede5c4d3" />
-
 
 ### Hyperlocal risk map
 Every dot is a monitored location, coloured by risk level. The blue dot is the user's own location.
 
 <img width="1898" height="821" alt="risk-map" src="https://github.com/user-attachments/assets/3aad0601-0dfa-4031-aabd-b84024cfc17d" />
 
-
 ### Your location panel
 Risk level at the nearest monitored point, with a plain-language "What this means" explanation and role-specific actions.
 
 <img width="1889" height="828" alt="your-location-panel" src="https://github.com/user-attachments/assets/56f9b551-6840-4528-8a7e-45906a791e62" />
-
 
 ---
 
